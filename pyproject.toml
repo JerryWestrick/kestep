@@ -1,0 +1,16 @@
+# pyproject.toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kestep"
+version = "0.1.0"
+authors = [
+    { name = "Jerry Westrick", email = "jerry@westrick.com" },
+]
+description = "Knowledge Engineer ReDesigned"
+requires-python = ">=3.8"
+
+[project.scripts]
+ke = "kestep.main:main"
