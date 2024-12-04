@@ -1,0 +1,25 @@
+.# Test generate Json
+.llm {"model": "gpt-4o-mini"}
+.system
+You are a working on administrative services.
+evaluate provided documentation, and generate output as requested.
+.user
+We are going to update this json structure:
+
+.include Prices/AI_API_Costs.py
+
+
+Here is the newest offerings from different providers
+
+Anthropic:
+.include Prices/Anthropic.md
+
+Mistral:
+.include Prices/Mistral.md
+
+OpenAI:
+.include Prices/OpenAI.md
+
+
+Write new structure to Prices/AI_API_Costs.py
+.exec

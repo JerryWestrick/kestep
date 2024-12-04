@@ -1,0 +1,27 @@
+.# Update the List of Anthropic support LLMs and there prices
+.llm {"model": "gpt-4o-mini"}
+.clear ["logs/*"]
+.system
+You are updating the pricing info about LLM models.
+.user
+Here is the newest Anthropic offerings and prices
+.cmd www_get(url=https://docs.anthropic.com/en/docs/about-claude/models)
+
+
+We are creating a markdown document.
+Start with a header: "Anthropic Offerings and Prices as off: ${current_datetime}$"
+
+Next Create a table with columns:
+[   'Model',
+    'API Model Name',
+    'Max Output Tokens',
+    'Cost Input per MTok',
+    'Cost Output per MTok',
+    'Context Window',
+    'Training Data Cut-off'
+]
+describing the offerings.
+
+and finally write the document into Prices/Anthropic.md
+
+.exec

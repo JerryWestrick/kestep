@@ -1,0 +1,17 @@
+.# Update the List of OpenAI support LLMs and there prices
+.llm {"model": "gpt-4o-mini"}
+.clear ["Logs/*"]
+.system
+You are updating the OpenAI pricing info for their LLM models.
+.user
+Here the old price info
+
+```Prices/AI_API_Costs.py
+.include Prices/AI_API_Costs.py
+```
+
+Here is the current OpenAI Pricing page:
+.cmd www_get(url="https://openai.com/api/pricing/")
+
+List the differences and Update the models and the prices writing new version to Prices/AI_API_Costs.py.
+.exec
