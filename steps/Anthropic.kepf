@@ -5,7 +5,7 @@
 You are updating the pricing info about LLM models.
 .user
 Here is the newest Anthropic offerings and prices
-.cmd www_get(url=https://docs.anthropic.com/en/docs/about-claude/models)
+.cmd wwwget(url=https://docs.anthropic.com/en/docs/about-claude/models)
 
 
 We are creating a markdown document.
