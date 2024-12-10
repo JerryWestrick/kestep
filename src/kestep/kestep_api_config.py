@@ -5,6 +5,9 @@ api_config = {
         "api_key": "OPENAI_API_KEY",
         "response_text_is_json": True,
         "tplHeader": '''{"Content-Type": "application/json", "Authorization": "Bearer {{ API_KEY }}"}''',
+        "tplSystem": '''{"role":"system", "content": "{{value}}"}''',
+        "tplUser": '''{"role":"user", "content": "{{value}}"}''',
+        "tplAssistant": '''{"role":"assistant", "content": "{{value}}"}''',
         "tplData": '''{ "model": "{{ model }}","messages":
         [   {% if model == "o1-preview" or model == "o1-mini" %}
                 {"role": "user",
@@ -18,7 +21,8 @@ api_config = {
             {"role": "user", "content": "{{ user_input }}"}
         ]}''',
         "response_keys": ["choices", 0, "message", "content"],
-        "usage_keys": ["prompt_tokens", "completion_tokens"]
+        "usage_keys": ["prompt_tokens", "completion_tokens"],
+        "system_role": "system"
     },
     "XAI": {
         "company": "XAI",
@@ -35,7 +39,8 @@ api_config = {
                     {"role": "user", "content": "{{ user_input }}"}
                 ]}''',
         "response_keys": ["choices", 0, "message", "content"],
-        "usage_keys": ["prompt_tokens", "completion_tokens"]
+        "usage_keys": ["prompt_tokens", "completion_tokens"],
+        "system_role": "user"
     },
     "MistralAI": {
         "company": "Mistralai",
@@ -49,7 +54,8 @@ api_config = {
                 {"role": "user","content": "{{ user_input }}"}
               ]}''',
         "response_keys": ["choices", 0, "message", "content"],
-        "usage_keys": ["prompt_tokens", "completion_tokens"]
+        "usage_keys": ["prompt_tokens", "completion_tokens"],
+        "system_role": "system"
     },
     "Anthropic": {
         "company": "Anthropic",
@@ -66,6 +72,7 @@ api_config = {
                 {"role": "user","content": "{{ user_input }}"}
               ]}''',
         "response_keys": ["content", 0, "text"],
-        "usage_keys": ["input_tokens", "output_tokens"]
+        "usage_keys": ["input_tokens", "output_tokens"],
+        "system_role": "system"
     }
 }

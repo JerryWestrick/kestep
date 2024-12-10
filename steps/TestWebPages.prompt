@@ -5,7 +5,6 @@ You are a working on administrative services.
 evaluate provided documentation, and generate output as requested.
 .user
 with this webpage:
-.cmd www_get(url=https://docs.anthropic.com/en/docs/about-claude/models)
 .cmd www_get(url="https://mistral.ai/technology/#pricing")
 .cmd www_get(url="https://openai.com/api/pricing/")
 

@@ -1,16 +1,14 @@
 import platform
 import subprocess
+import sys
 
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import InMemoryHistory
 from rich.console import Console
-from rich.panel import Panel
-from rich.style import Style
-from rich.text import Text
-from prompt_toolkit.key_binding import KeyBindings
+from rich.prompt import Prompt
+from rich.theme import Theme
+
+from kestep.kestep_util import versioned_file
 
 console = Console()
-
 
 def get_webpage_content(url: str) -> str:
     # Command to fetch the content and convert it to text
@@ -32,81 +30,34 @@ def get_webpage_content(url: str) -> str:
     return process.stdout.decode()
 
 
-def readfile(filename: str) -> dict[str, str]:
+def readfile(filename: str) -> str:
     """ Read a file from local disk and add it the prompt"""
     try:
         with open(filename, 'r') as file:
             file_contents = file.read()
-        
     except Exception as err:
-        console.print(f"Error while reading file {filename} ... ", err)
-        return {'role': 'function','name': 'read_file', 'content': f'ERROR file not found: {filename}'}
+        console.print(f"Error accessing file: {str(err)}\n\n")
+        console.print_exception()
+        sys.exit(9)
 
-    return {'name': 'read_file', 'content': file_contents}
+    return file_contents
 
-def askuser(question: str) -> dict[str, str]:
+# Create custom theme for prompts
+theme = Theme({"prompt": "bold blue", "answer": "italic cyan"})
+
+question_console = Console(theme=theme)
+
+def askuser(question: str) -> str:
     """The LLM asks the local user for clarification with improved formatting and advanced line editing."""
 
-
-    # Create a styled question
-    styled_question = Text(question, style="bold cyan")
-
-    # Create a panel for the question
-    question_panel = Panel(
-        styled_question,
-        title=f"[bold green]ask user[/bold green]",
-        subtitle="[italic]Enter your response (Ctrl-D to finish)[/italic]",
-        border_style="green",
-        expand=False
+    answer = Prompt.ask(
+        f"[prompt]{question}[/prompt]",
+        console=question_console
     )
-
-    # Display the question panel
-    console.print(question_panel)
-
-    # Set up key bindings
-    kb = KeyBindings()
-
-    @kb.add('c-d')
-    def _(event):
-        event.app.exit(result=event.app.current_buffer.text)
-
-    # Set up prompt_toolkit session with styling
-    style = Style.from_dict({
-        'prompt': 'ansiyellow bold',
-        'input': 'ansiwhite',
-    })
-    session = PromptSession(
-        history=InMemoryHistory(),
-        style=style,
-        multiline=True,
-        prompt_continuation=lambda width, line_number, is_soft_wrap: '▶ ' if not is_soft_wrap else '  ',
-        key_bindings=kb
-    )
-
-    # Collect user input asynchronously
-    try:
-        user_response = session.prompt("Your response: ", )
-    except EOFError:
-        user_response = session.app.current_buffer.text
-
-    # Display the user's response in a panel
-    response_panel = Panel(
-        Text(user_response, style="yellow"),
-        title="[bold blue]Your Response[/bold blue]",
-        border_style="blue",
-        expand=False
-    )
-    console.print(response_panel)
-
-    msg = {
-        'name': 'exec',
-        'role': 'User',
-        'content': f'User Answer: {user_response}'
-    }
-    return msg
+    return answer
 
 
-def wwwget(url: str):
+def wwwget(url: str) -> str:
 
     try:
         page_contents = get_webpage_content(url)
@@ -118,7 +69,31 @@ def wwwget(url: str):
                 }
         return result
 
-    return {'name': 'wwwget', 'content': page_contents}
+    return page_contents
+
+def writefile(filename: str, content: str) -> str:
+    """Write content to file with versioning.
+    Returns the path of the written file."""
+    new_filename = versioned_file(filename)
+
+    with open(new_filename, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    return f"Content written to file '{new_filename}'"
+
+
+def execcmd(cmd: str) -> str:
+    """Execute shell command and return output."""
+    import subprocess
+    if cmd[0] in ['"', "'"]:
+        cmd = cmd[1:-1]
+    try:
+        result = subprocess.run(['/bin/sh', '-c', cmd], capture_output=True, text=True, encoding='utf-8', check=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        return f"stderr: {e.stderr}"
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 
 os_descriptor = platform.platform()
@@ -169,33 +144,33 @@ DefinedFunctionsArray = [
         },
     },
     {
-        "name": "exec",
+        "name": "execcmd",
         "description": f"Execute a command on the local {os_descriptor} system",
         "parameters": {
             "type": "object",
             "properties": {
-                "command": {
+                "cmd": {
                     "type": "string",
                     "description": "command to be executed",
                 },
             },
-            "required": ["command"],
+            "required": ["cmd"],
         },
     },
-    {
-        "name": "querydb",
-        "description": f"Execute an SQL against psql (PostgreSQL) 14.11 (Ubuntu 14.11-0ubuntu0.22.04.1) database",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "sql": {
-                    "type": "string",
-                    "description": "SQL command to be executed",
-                },
-            },
-            "required": ["sql"],
-        },
-    },
+    # {
+    #     "name": "querydb",
+    #     "description": f"Execute an SQL against psql (PostgreSQL) 14.11 (Ubuntu 14.11-0ubuntu0.22.04.1) database",
+    #     "parameters": {
+    #         "type": "object",
+    #         "properties": {
+    #             "sql": {
+    #                 "type": "string",
+    #                 "description": "SQL command to be executed",
+    #             },
+    #         },
+    #         "required": ["sql"],
+    #     },
+    # },
     {
         "name": "askuser",
         "description": f"Get Clarification by Asking the user a question",
@@ -217,8 +192,8 @@ DefinedFunctionsDescriptors = {func["name"]: func for func in DefinedFunctionsAr
 DefinedFunctions = {
     "readfile": readfile,
     "wwwget": wwwget,
-    # "writefile": writefile,
-    # "exec": execute_cmd_ai,
+    "writefile": writefile,
+    "execcmd": execcmd,
     # "querydb": query_db_ai,
     "askuser": askuser,
 }

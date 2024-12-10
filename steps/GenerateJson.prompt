@@ -1,0 +1,13 @@
+.# Test generate Json
+.llm "model": "grok-beta"
+.system
+You are a working on administrative services.
+evaluate provided documentation, and generate output as requested.
+.user
+We are going to update a json structure that holds information about LLM api offerings from different companies.
+Here is the original:
+.cmd readfile(filename=Prices/kestep_models.json)
+Get the new values from the provided web content
+.cmd wwwget(url=https://docs.anthropic.com/en/docs/about-claude/models)
+Write new structure to Prices/AI_API_Costs.py
+.exec

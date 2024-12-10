@@ -1,6 +1,6 @@
 .# Update the List of Anthropic support LLMs and there prices
 .llm {"model": "gpt-4o-mini"}
-.clear ["logs/*"]
+.clear ["logs/t.tmp"]
 .system
 You are updating the pricing info about LLM models.
 .user
