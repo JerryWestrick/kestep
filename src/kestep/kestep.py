@@ -355,12 +355,48 @@ class PromtpStep:
 
         match self.company:
             case 'Anthropic':
-                # Do something when self.company is 'Anthropic'
-                pass
+                finish_reason = response_obj['stop_reason']
+                is_function_call = False
+                if finish_reason == "tool_use":
+                    is_function_call = True
+                    continue_converstaion = True
+
+                resp_msgs = response_obj["content"]
+
+                for msg in resp_msgs:
+
+                    function_name: str = ''
+                    function_args: dict[str:any] = {}
+                    # Todo: Anthropic sends multiple msgs in a batch.  These need to be responded in a batch.
+                    if is_function_call:
+                        if msg['type'] == 'tool_use':
+                            function_call = msg
+                            function_name = function_call['name']
+                            function_args = function_call['input']
+
+                            # print(f"It's a  Function Call!")
+                            # print(f"function_call:{function_call}")
+                            self.print_with_wrap(is_responce=True, line=f"Call {function_name}:({function_args})")
+                            self.messages.append({"role": "assistant", "content": [msg]})
+                            ret = DefinedFunctions[function_name](**function_args)
+                            self.print_with_wrap(is_responce=False, line=f"Call returned: {ret}")
+                            self.messages.append({
+                                "role": "user",
+                                "content": [{
+                                    "type": "tool_result",
+                                    "tool_use_id": function_call['id'],
+                                    "content": ret
+                                }]
+                            })
+                    else:
+                        self.messages.append(msg)
+                        self.print_with_wrap(is_responce=True, line=f"Response: {msg['text']}")
+
+                return continue_converstaion
 
             case 'MistralAI':
-                # Do something when self.company is 'MistralAI'
-                pass
+                    # Todo: Implement 'MistralAI' conversation parsing
+                    pass
 
             case 'OpenAI':
                 finish_reason = response_obj['choices'][0]['finish_reason']
@@ -402,7 +438,7 @@ class PromtpStep:
                 return continue_converstaion
 
             case 'XAI':
-                # Do something when self.company is 'XAI'
+                # Todo: Implement 'XAI' conversation Parsing
                 finish_reason = self.traverse_obj(response_obj, 'finish_reason')
                 is_function_call = finish_reason == self.llm['finish_reason_function_call']
 
@@ -712,8 +748,9 @@ class _Exec(_PromptStatement):
                 cost_out = toks_out * step.model['output']
                 total = cost_in + cost_out
 
-                no_bytes_remaining = terminal_width - 33 - len(step.company) - len(step.model) - dot_thread.count
                 pline = f" {elapsed_time:.2f} secs output tokens {toks_out} at {toks_out / elapsed_time:.2f} tps"
+                used_bytes = 13 + 11 + len(step.company) + 2 + len(step.model_name) + dot_thread.count + 1
+                no_bytes_remaining = terminal_width - used_bytes
                 step.print(f"{pline:<{no_bytes_remaining}}[bold white]{VERTICAL}[/]")
 
 

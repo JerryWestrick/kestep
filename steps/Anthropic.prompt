@@ -1,5 +1,5 @@
 .# Test generate Json
-.llm "model": "claude-3-5-sonnet-20240620"
+.llm "model": "claude-3-haiku-20240307"
 .system
 You are a working on administrative services.
 evaluate provided documentation, and generate output as requested.
