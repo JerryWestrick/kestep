@@ -1,27 +1,10 @@
-.# Update the List of Anthropic support LLMs and there prices
-.llm {"model": "gpt-4o-mini"}
-.clear ["logs/t.tmp"]
+.# Test generate Json
+.llm "model": "claude-3-5-sonnet-20240620"
 .system
-You are updating the pricing info about LLM models.
+You are a working on administrative services.
+evaluate provided documentation, and generate output as requested.
 .user
-Here is the newest Anthropic offerings and prices
-.cmd wwwget(url=https://docs.anthropic.com/en/docs/about-claude/models)
-
-
-We are creating a markdown document.
-Start with a header: "Anthropic Offerings and Prices as off: ${current_datetime}$"
-
-Next Create a table with columns:
-[   'Model',
-    'API Model Name',
-    'Max Output Tokens',
-    'Cost Input per MTok',
-    'Cost Output per MTok',
-    'Context Window',
-    'Training Data Cut-off'
-]
-describing the offerings.
-
-and finally write the document into Prices/Anthropic.md
-
+We are going to create documentation with the information provided in a json:
+read th file 'Prices/kestep_models.json'
+create a pretty table with that info and write it into 'Prices/AI_API_Costs.md'
 .exec

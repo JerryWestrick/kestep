@@ -1,12 +1,13 @@
 import platform
 import subprocess
 import sys
+from copy import deepcopy
 
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.theme import Theme
 
-from kestep.kestep_util import versioned_file
+from kestep.kestep_util import backup_file
 
 console = Console()
 
@@ -74,7 +75,7 @@ def wwwget(url: str) -> str:
 def writefile(filename: str, content: str) -> str:
     """Write content to file with versioning.
     Returns the path of the written file."""
-    new_filename = versioned_file(filename)
+    new_filename = backup_file(filename)
 
     with open(new_filename, 'w', encoding='utf-8') as f:
         f.write(content)
@@ -98,103 +99,88 @@ def execcmd(cmd: str) -> str:
 
 os_descriptor = platform.platform()
 
-DefinedFunctionsArray = [
-    {   "name": "readfile",
-        "description": "Read the contents of a named file",
-        "parameters": {
+DefinedToolsArray = [
+    {'type': 'function',
+     'function':{
+         "name": "readfile",
+         "description": "Read the contents of a named file",
+         "parameters": {
             "type": "object",
             "properties": {
-                "filename": {
-                    "type": "string",
-                    "description": "The name of the file to read",
-                },
+                "filename": {"type": "string", "description": "The name of the file to read",},
             },
             "required": ["filename"],
-        },
-    },
-    {   "name": "wwwget",
+             "additionalProperties": False
+         },
+    }},
+    {'type': 'function',
+     'function':{   "name": "wwwget",
         "description": "Read a webpage url and return the contents",
         "parameters": {
             "type": "object",
             "properties": {
-                "url": {
-                    "type": "string",
-                    "description": "The url of the web page to read",
-                },
+                "url": {"type": "string","description": "The url of the web page to read",},
             },
             "required": ["url"],
+            "additionalProperties": False
         },
-    },
-    {
+    }},
+    {'type': 'function',
+     'function':{
         "name": "writefile",
         "description": "Write the contents to a named file on the local file system",
         "parameters": {
             "type": "object",
             "properties": {
-                "filename": {
-                    "type": "string",
-                    "description": "The name of the file to write",
-                },
-                "content": {
-                    "type": "string",
-                    "description": "The contents of the file",
-                },
+                "filename": {"type": "string","description": "The name of the file to write",},
+                "content": {"type": "string","description": "The content to be written to the file",},
             },
             "required": ["filename", "content"],
+            "additionalProperties": False
         },
-    },
-    {
+    }},
+    {'type': 'function',
+     'function':{
         "name": "execcmd",
         "description": f"Execute a command on the local {os_descriptor} system",
         "parameters": {
             "type": "object",
             "properties": {
-                "cmd": {
-                    "type": "string",
-                    "description": "command to be executed",
+                "cmd": {"type": "string","description": "command to be executed",
                 },
             },
             "required": ["cmd"],
+            "additionalProperties": False
         },
-    },
-    # {
-    #     "name": "querydb",
-    #     "description": f"Execute an SQL against psql (PostgreSQL) 14.11 (Ubuntu 14.11-0ubuntu0.22.04.1) database",
-    #     "parameters": {
-    #         "type": "object",
-    #         "properties": {
-    #             "sql": {
-    #                 "type": "string",
-    #                 "description": "SQL command to be executed",
-    #             },
-    #         },
-    #         "required": ["sql"],
-    #     },
-    # },
-    {
+    }},
+    {'type': 'function',
+     'function':{
         "name": "askuser",
         "description": f"Get Clarification by Asking the user a question",
         "parameters": {
             "type": "object",
             "properties": {
-                "question": {
-                    "type": "string",
-                    "description": "Question to ask the user",
-                },
+                "question": {"type": "string","description": "Question to ask the user",},
             },
             "required": ["question"],
+            "additionalProperties": False
         },
-    }
+    }}
 ]
 
-DefinedFunctionsDescriptors = {func["name"]: func for func in DefinedFunctionsArray}
+AnthropicToolsArray = []
+for tool in DefinedToolsArray:
+    AnthropicToolsArray.append({
+        "name": tool['function']['name'],
+        "description":tool['function']['description'],
+        "input_schema": tool['function']['parameters'],
+    })
 
 DefinedFunctions = {
-    "readfile": readfile,
-    "wwwget": wwwget,
-    "writefile": writefile,
-    "execcmd": execcmd,
-    # "querydb": query_db_ai,
-    "askuser": askuser,
+    "readfile":     readfile,
+    "wwwget":       wwwget,
+    "writefile":    writefile,
+    "execcmd":      execcmd,
+    "askuser":      askuser,
 }
 

@@ -1,18 +1,10 @@
-.# Update the List of Mistral support LLMs and there prices
-.llm {"model": "gpt-4o-mini"}
-.clear ["Logs/*"]
+.# Test generate Json
+.llm "model": "mistral-small-2409"
 .system
-You are updating the Mistral pricing info for their LLM models.
+You are a working on administrative services.
+evaluate provided documentation, and generate output as requested.
 .user
-Here the price current info
-
-```Prices/AI_API_Costs.py
-.include Prices/AI_API_Costs.py
-```
-
-Here is the current Mistral Pricing page:
-
-.cmd www_get(url=https://mistral.ai/technology/#pricing)
-
-Update the Prices/AI_API_Costs.py to reflect the new information.
+We are going to create documentation with the information provided in a json:
+read th file 'Prices/kestep_models.json'
+create a pretty table with that info and write it into 'Prices/AI_API_Costs.md'
 .exec

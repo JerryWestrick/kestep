@@ -1,5 +1,5 @@
 .# Test generate Json
-.llm "model": "gpt-4o-mini"
+.llm "model": "grok-beta"
 .system
 You are a working on administrative services.
 evaluate provided documentation, and generate output as requested.
