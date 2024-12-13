@@ -18,7 +18,7 @@ from urllib3.util.util import reraise
 from kestep.kestep_api_config import api_config
 from kestep.kestep_functions import DefinedFunctions, readfile, DefinedToolsArray, AnthropicToolsArray
 from kestep.kestep_util import TOP_LEFT, BOTTOM_LEFT, VERTICAL, HORIZONTAL, TOP_RIGHT, RIGHT_TRIANGLE, LEFT_TRIANGLE, \
-    HORIZONTAL_LINE, BOTTOM_RIGHT
+    HORIZONTAL_LINE, BOTTOM_RIGHT, CIRCLE
 from kestep.kestep_util import backup_file
 
 FORMAT = "%(message)s"
@@ -341,9 +341,9 @@ class PromtpStep:
         print_line = line.replace('\n', '\\n')[:line_len]
 
         if is_responce:
-            hdr = f"[bold white]{VERTICAL}[/]{color}   {LEFT_TRIANGLE}{HORIZONTAL_LINE*7} "
+            hdr = f"[bold white]{VERTICAL}[/]{color}   {LEFT_TRIANGLE}{HORIZONTAL_LINE*6}{CIRCLE} "
         else:
-            hdr = f"[bold white]{VERTICAL}[/]{color}   {HORIZONTAL_LINE*7}{RIGHT_TRIANGLE} "
+            hdr = f"[bold white]{VERTICAL}[/]{color}   {CIRCLE}{HORIZONTAL_LINE*6}{RIGHT_TRIANGLE} "
 
 
         lead, trail = print_line.split(':', 1)
@@ -352,7 +352,7 @@ class PromtpStep:
     def do_conversation(self, response_obj: dict[str, any], header:str) -> bool:
         continue_converstaion = False
 
-
+        # Todo: All LLms sends multiple msgs in a batch.  These need to be responded in a batch.
         match self.company:
             case 'Anthropic':
                 finish_reason = response_obj['stop_reason']
@@ -367,7 +367,6 @@ class PromtpStep:
 
                     function_name: str = ''
                     function_args: dict[str:any] = {}
-                    # Todo: Anthropic sends multiple msgs in a batch.  These need to be responded in a batch.
                     if is_function_call:
                         if msg['type'] == 'tool_use':
                             function_call = msg
@@ -392,13 +391,7 @@ class PromtpStep:
                         self.messages.append(msg)
                         self.print_with_wrap(is_responce=True, line=f"Response: {msg['text']}")
 
-                return continue_converstaion
-
-            case 'MistralAI':
-                    # Todo: Implement 'MistralAI' conversation parsing
-                    pass
-
-            case 'OpenAI':
+            case 'OpenAI' | 'XAI' | 'MistralAI':
                 finish_reason = response_obj['choices'][0]['finish_reason']
                 is_function_call = False
                 if finish_reason == "tool_calls":
@@ -428,66 +421,17 @@ class PromtpStep:
                             self.print_with_wrap(is_responce=False, line=f"Call returned: {ret}")
                             self.messages.append({
                                 "role": "tool",
-                                "content": ret,
-                                "tool_call_id": function_call['id']
+                                "name": function_name,
+                                "tool_call_id": function_call['id'],
+                                "content": ret
                             })
                     else:
                         self.messages.append(msg)
                         self.print_with_wrap(is_responce=True, line=f"Response: {msg['content']}")
 
-                return continue_converstaion
-
-            case 'XAI':
-                # Todo: Implement 'XAI' conversation Parsing
-                finish_reason = self.traverse_obj(response_obj, 'finish_reason')
-                is_function_call = finish_reason == self.llm['finish_reason_function_call']
-
             case _:
                 raise PromptSyntaxError(f"Error Unknown company: {self.company}")
 
-
-
-
-        # step.print(f"is_function_call: {is_function_call}")
-
-        # loop over returned msgs, adding them to messages...
-        # Process the returned msg, adding it to the messages.
-
-
-        if type(resp_msgs) != list:
-            resp_msgs = [resp_msgs]
-
-        for msg in resp_msgs:
-
-            # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            # Looks like we will need to do this section individually by company
-            # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            function_name: str = ''
-            function_args: dict[str:any] = {}
-
-            if is_function_call:
-                continue_converstaion = True
-                if self.company == 'OpenAI' and 'tool_calls' in msg:
-                    function_name = msg['name']
-                    function_args = json.loads(msg['input'])
-                elif self.company == 'Anthropic' and msg['type'] == 'tool_use':
-                    function_name = msg['name']
-                    function_args = msg['input']
-
-                    # print(f"It's a  Function Call!")
-                    # print(f"function_call:{function_call}")
-                    self.print(f"{header}Call {function_name}({str(msg['input'])[:terminal_width - len(header) - 20]})")
-                    ret = DefinedFunctions[function_name](**function_args)
-                    self.messages.append(msg)
-                    self.messages.append({
-                        "role": "tool",
-                        "content": ret,
-                        "tool_call_id": msg['tool_calls'][0]['id']
-                    })
-            else:
-                self.messages.append(msg)
-                # step.print(f"{header}{msg['content'][:terminal_width-len(header)-2]}")
-                self.print(f"{header}{msg['text'][:terminal_width - len(header) - 2]}")
 
         return continue_converstaion
 
@@ -683,6 +627,12 @@ class _Exec(_PromptStatement):
         first_time = True
         step.print(f"[bold white]{VERTICAL}[/][white]{self.msg_no:02}[/] [cyan]{self.keyword:<8}[/] ", end='')
 
+        toks_in = 0
+        cost_in = 0
+        toks_out = 0
+        cost_out = 0
+        total = 0
+
         continue_conversation: bool = True
         header = f"[bold white]{VERTICAL}[/]            "
         while continue_conversation:
@@ -742,11 +692,11 @@ class _Exec(_PromptStatement):
             try:
                 # Got a good response from LLM
                 usage = response_obj['usage']
-                toks_in = usage[step.llm['usage_keys'][0]]
-                cost_in = toks_in * step.model['input']
-                toks_out = usage[step.llm['usage_keys'][1]]
-                cost_out = toks_out * step.model['output']
-                total = cost_in + cost_out
+                toks_in += usage[step.llm['usage_keys'][0]]
+                cost_in += toks_in * step.model['input']
+                toks_out += usage[step.llm['usage_keys'][1]]
+                cost_out += toks_out * step.model['output']
+                total += cost_in + cost_out
 
                 pline = f" {elapsed_time:.2f} secs output tokens {toks_out} at {toks_out / elapsed_time:.2f} tps"
                 used_bytes = 13 + 11 + len(step.company) + 2 + len(step.model_name) + dot_thread.count + 1

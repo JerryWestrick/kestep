@@ -16,7 +16,10 @@ VERTICAL = '│'
 HORIZONTAL = '─'
 RIGHT_TRIANGLE = u"\u25B6"
 LEFT_TRIANGLE = u"\u25C0"
+CIRCLE = "⬤"
+
 HORIZONTAL_LINE = u"\u2500"
+
 
 
 def backup_file(filepath: str, backup_dir: Optional[str] = None, extension: Optional[str] = None) -> str:
