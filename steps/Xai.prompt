@@ -1,10 +1,19 @@
-.# Test generate Json
+.# Xai --> Test generate Json
 .llm "model": "grok-beta"
 .system
-You are a working on administrative services.
-evaluate provided documentation, and generate output as requested.
+We are updating json configuration files.
+Please gather as much information as possible in the first request.
 .user
-We are going to create documentation with the information provided in a json:
-read th file 'Prices/kestep_models.json'
-create a pretty table with that info and write it into 'Prices/AI_API_Costs.md'
+
+Using local functions make these 3 calls in a single request:
+    please read the file Prices/kestep_models.json using the readfile tool and
+    using wwwget function get these pages:
+     - https://mistral.ai/technology/#pricing
+     - https://www.anthropic.com/pricing#anthropic-api
+
+Then rewrite the file Prices/kestep_models.json keeping the formating
+but updating the available models and the new prices.
+
 .exec
+
+

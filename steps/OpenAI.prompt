@@ -1,10 +1,15 @@
-.# Test generate Json
+.# OpenAI --> Test generate Json
 .llm "model": "gpt-4o-mini"
 .system
-You are a working on administrative services.
-evaluate provided documentation, and generate output as requested.
+We are updating json configuration files.
+
 .user
-We are going to create documentation with the information provided in a json:
-read th file 'Prices/kestep_models.json'
-create a pretty table with that info and write it into 'Prices/AI_API_Costs.md'
+
+please read the file Prices/kestep_models.json and update it with the opfferings from:
+ - https://mistral.ai/technology/#pricing
+ - https://www.anthropic.com/pricing#anthropic-api
+
+then rewrite the file Prices/kestep_models.json keeping the formating but updting the available models and the new prices.
+
+
 .exec

@@ -10,6 +10,7 @@ from time import sleep
 
 import keyring
 import requests
+from attr.converters import to_bool
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
@@ -18,7 +19,7 @@ from urllib3.util.util import reraise
 from kestep.kestep_api_config import api_config
 from kestep.kestep_functions import DefinedFunctions, readfile, DefinedToolsArray, AnthropicToolsArray
 from kestep.kestep_util import TOP_LEFT, BOTTOM_LEFT, VERTICAL, HORIZONTAL, TOP_RIGHT, RIGHT_TRIANGLE, LEFT_TRIANGLE, \
-    HORIZONTAL_LINE, BOTTOM_RIGHT, CIRCLE
+    HORIZONTAL_LINE, BOTTOM_RIGHT, CIRCLE, CHAR_SEND_REQUEST
 from kestep.kestep_util import backup_file
 
 FORMAT = "%(message)s"
@@ -87,6 +88,12 @@ class PromtpStep:
         self.model_name:str = None
         self.company:str = None
         self.system_value: str = None
+        self.toks_in = 0
+        self.cost_in = 0
+        self.toks_out = 0
+        self.cost_out = 0
+        self.total = 0
+
 
         if debug:
             log.info(f'Instantiated PromptStep(filename="{filename}",debug="{debug}")')
@@ -258,6 +265,8 @@ class PromtpStep:
         for k, v in parms.items():
             self.llm[k] = v
 
+
+
     def execute(self) -> None:
         if self.debug: log.info(f'execute({self.filename} with {len(self.statements)} statements)')
 
@@ -318,19 +327,6 @@ class PromtpStep:
                 self.print(f"[bold red]Error {self.company} not defined[/bold red]")
                 exit(9)
 
-    def traverse_obj(self, _obj, llm_key_name:str):
-        t = _obj
-        key_list: list[any] = self.llm[llm_key_name]
-        for tk in key_list:
-            try:
-                t = t[tk]
-            except KeyError as e:
-                self.print(f"[white on red]kestep_api_config.py:error::[/] Traverse '{llm_key_name}':{key_list} not possible in obj:\n{json.dumps(_obj,indent=4)}")
-                self.print_exception()
-                exit(9)
-
-        return t
-
     def print_with_wrap(self, is_responce:bool, line:str)-> None:
         line_len = terminal_width - 14
         color = '[bold green]'
@@ -341,62 +337,49 @@ class PromtpStep:
         print_line = line.replace('\n', '\\n')[:line_len]
 
         if is_responce:
-            hdr = f"[bold white]{VERTICAL}[/]{color}   {LEFT_TRIANGLE}{HORIZONTAL_LINE*6}{CIRCLE} "
+            hdr = f"[bold white]{VERTICAL}[/]{color}   {LEFT_TRIANGLE}{HORIZONTAL_LINE*5}{CIRCLE}  "
         else:
-            hdr = f"[bold white]{VERTICAL}[/]{color}   {CIRCLE}{HORIZONTAL_LINE*6}{RIGHT_TRIANGLE} "
+            hdr = f"[bold white]{VERTICAL}[/]{color}   {CIRCLE}{HORIZONTAL_LINE*5}{RIGHT_TRIANGLE}  "
 
 
         lead, trail = print_line.split(':', 1)
         self.print(f"{hdr}{lead}[/]:{trail}[bold white]{VERTICAL}[/]")
 
     def do_conversation(self, response_obj: dict[str, any], header:str) -> bool:
-        continue_converstaion = False
+        continue_conversation = False
 
         # Todo: All LLms sends multiple msgs in a batch.  These need to be responded in a batch.
         match self.company:
             case 'Anthropic':
                 finish_reason = response_obj['stop_reason']
-                is_function_call = False
-                if finish_reason == "tool_use":
-                    is_function_call = True
-                    continue_converstaion = True
+                is_function_call = (finish_reason == "tool_use")
+                self.messages.append({"role": response_obj["role"], "content":response_obj["content"]})
 
-                resp_msgs = response_obj["content"]
-
-                for msg in resp_msgs:
-
-                    function_name: str = ''
-                    function_args: dict[str:any] = {}
-                    if is_function_call:
-                        if msg['type'] == 'tool_use':
-                            function_call = msg
-                            function_name = function_call['name']
-                            function_args = function_call['input']
-
-                            # print(f"It's a  Function Call!")
-                            # print(f"function_call:{function_call}")
-                            self.print_with_wrap(is_responce=True, line=f"Call {function_name}:({function_args})")
-                            self.messages.append({"role": "assistant", "content": [msg]})
-                            ret = DefinedFunctions[function_name](**function_args)
-                            self.print_with_wrap(is_responce=False, line=f"Call returned: {ret}")
-                            self.messages.append({
-                                "role": "user",
-                                "content": [{
-                                    "type": "tool_result",
-                                    "tool_use_id": function_call['id'],
-                                    "content": ret
-                                }]
-                            })
-                    else:
-                        self.messages.append(msg)
+                return_msgs = []
+                for msg in response_obj["content"]:
+                    if msg['type'] == 'text':
                         self.print_with_wrap(is_responce=True, line=f"Response: {msg['text']}")
+                    else:
+                        continue_conversation = True
+
+                        function_name = msg['name']
+                        function_args = msg['input']
+                        function_id = msg["id"]
+
+                        self.print_with_wrap(is_responce=True, line=f"Call {function_name}:{function_id}:({function_args})")
+                        ret = DefinedFunctions[function_name](**function_args)
+                        self.print_with_wrap(is_responce=False, line=f"Call returned: {ret}")
+                        return_msgs.append({"type": "tool_result", "tool_use_id": function_id, "content": ret})
+                self.messages.append({"role":"user", "content":return_msgs})
+
 
             case 'OpenAI' | 'XAI' | 'MistralAI':
                 finish_reason = response_obj['choices'][0]['finish_reason']
                 is_function_call = False
                 if finish_reason == "tool_calls":
                     is_function_call = True
-                    continue_converstaion = True
+                    continue_conversation = True
+
 
                 resp_msgs = response_obj["choices"][0]["message"]
                 if type(resp_msgs) != list:
@@ -407,33 +390,43 @@ class PromtpStep:
                     function_name: str = ''
                     function_args: dict[str:any] = {}
 
+                    self.messages.append(msg)
                     if is_function_call:
                         if 'tool_calls' in msg:
-                            function_call = msg['tool_calls'][0]
-                            function_name = function_call['function']['name']
-                            function_args = json.loads(function_call['function']['arguments'])
+                            # Okay now for multiple tool calls
+                            for tool_call in msg['tool_calls']:
 
-                            # print(f"It's a  Function Call!")
-                            # print(f"function_call:{function_call}")
-                            self.print_with_wrap(is_responce=True, line=f"Call {function_name}:({function_call['function']['arguments']})")
-                            self.messages.append(msg)
-                            ret = DefinedFunctions[function_name](**function_args)
-                            self.print_with_wrap(is_responce=False, line=f"Call returned: {ret}")
-                            self.messages.append({
-                                "role": "tool",
-                                "name": function_name,
-                                "tool_call_id": function_call['id'],
-                                "content": ret
-                            })
+                                function_name = tool_call['function']['name']
+                                function_args = json.loads(tool_call['function']['arguments'])
+
+                                self.print_with_wrap(is_responce=True,
+                                                     line=f"Call {function_name}:({tool_call['function']['arguments']})")
+
+                                # print(f"It's a  Function Call!")
+                                # print(f"function_call:{function_call}")
+                                ret = DefinedFunctions[function_name](**function_args)
+                                self.print_with_wrap(is_responce=False, line=f"Call returned: {ret}")
+                                self.messages.append({
+                                    "role": "tool",
+                                    "name": function_name,
+                                    "tool_call_id": tool_call['id'],
+                                    "content": ret
+                                })
                     else:
-                        self.messages.append(msg)
                         self.print_with_wrap(is_responce=True, line=f"Response: {msg['content']}")
 
             case _:
                 raise PromptSyntaxError(f"Error Unknown company: {self.company}")
 
 
-        return continue_converstaion
+        return continue_conversation
+
+
+    def log_conversation(self):
+        base_name = os.path.splitext(os.path.basename(self.filename))[0]
+        logfile_name = backup_file(f"logs/{base_name}_messages.json", backup_dir='logs', extension='.json')
+        with open(logfile_name, 'w') as file:
+            json.dump(self.messages, file, indent=4)
 
 
 
@@ -627,12 +620,6 @@ class _Exec(_PromptStatement):
         first_time = True
         step.print(f"[bold white]{VERTICAL}[/][white]{self.msg_no:02}[/] [cyan]{self.keyword:<8}[/] ", end='')
 
-        toks_in = 0
-        cost_in = 0
-        toks_out = 0
-        cost_out = 0
-        total = 0
-
         continue_conversation: bool = True
         header = f"[bold white]{VERTICAL}[/]            "
         while continue_conversation:
@@ -641,9 +628,9 @@ class _Exec(_PromptStatement):
 
             if first_time:
                 first_time = False
-                step.print(f"[bold blue]requesting {step.company}::{step.model_name}", end='')
+                step.print(f"[bold blue underline]Requesting {step.company}::{step.model_name}", end='')
             else:
-                step.print(f"{header}[bold blue]requesting {step.company}::{step.model_name}", end='')
+                step.print(f"{header}[bold blue underline]Requesting {step.company}::{step.model_name}", end='')
 
             # Create a thread to run the print_dot function in the background
             stop_event.clear()  # Clear Signal to stop the thread
@@ -692,23 +679,23 @@ class _Exec(_PromptStatement):
             try:
                 # Got a good response from LLM
                 usage = response_obj['usage']
-                toks_in += usage[step.llm['usage_keys'][0]]
-                cost_in += toks_in * step.model['input']
-                toks_out += usage[step.llm['usage_keys'][1]]
-                cost_out += toks_out * step.model['output']
-                total += cost_in + cost_out
+                toks_out = usage[step.llm['usage_keys'][1]]
+                step.toks_in += usage[step.llm['usage_keys'][0]]
+                step.cost_in += step.toks_in * step.model['input']
+                step.toks_out += toks_out
+                step.cost_out += step.toks_out * step.model['output']
+                step.total += step.cost_in + step.cost_out
 
                 pline = f" {elapsed_time:.2f} secs output tokens {toks_out} at {toks_out / elapsed_time:.2f} tps"
                 used_bytes = 13 + 11 + len(step.company) + 2 + len(step.model_name) + dot_thread.count + 1
                 no_bytes_remaining = terminal_width - used_bytes
                 step.print(f"{pline:<{no_bytes_remaining}}[bold white]{VERTICAL}[/]")
 
-
                 continue_conversation = step.do_conversation(response_obj, header)
 
             except Exception as e:
                 step.print(f"[white on red]error while handling response:[/]")
-                step.print(json.dumps(response_obj,indent=4))
+                step.log_conversation()
                 step.print_exception()
                 exit(9)
 
@@ -716,9 +703,10 @@ class _Exec(_PromptStatement):
             step.print(f"[bold blue]Response from {step.llm['company']} API:[/bold blue]")
             step.print(response_obj)
 
-        pline = f"Tokens In={toks_in}(${cost_in:06.4f}), Out={toks_out}(${cost_out:06.4f}) Total=${total:06.4f}"
+        pline = f"Tokens In={step.toks_in}(${step.cost_in:06.4f}), Out={step.toks_out}(${step.cost_out:06.4f}) Total=${step.total:06.4f}"
         step.print(f"{header}{pline:<{terminal_width - 14}}[bold white]{VERTICAL}[/]")
 
+        step.log_conversation()
 
 class _Include(_PromptStatement):
     # Read a file and add its content to last_msg
