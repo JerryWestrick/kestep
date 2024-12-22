@@ -1,7 +1,9 @@
+import base64
 import copy
 import glob
 import json
 import logging
+import mimetypes
 import os
 import sys
 import threading
@@ -10,11 +12,11 @@ from time import sleep
 
 import keyring
 import requests
-from attr.converters import to_bool
+from pygments.lexers import q
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.table import Table
-from urllib3.util.util import reraise
+from textual import content
 
 from kestep.kestep_api_config import api_config
 from kestep.kestep_functions import DefinedFunctions, readfile, DefinedToolsArray, AnthropicToolsArray
@@ -36,7 +38,7 @@ console = Console()
 terminal_width = console.size.width
 stop_event = threading.Event()  # Event to signal when to stop the thread
 
-keywords = ['.#', '.assistant', '.cmd', '.clear', '.include', '.debug', '.exec', '.llm', '.system', '.user', ]
+# keywords = ['.#', '.assistant', '.cmd', '.clear', '.include', '.debug', '.exec', '.llm', '.system', '.user', ]
 
 
 def print_step_code(step_files: list[str]) -> None:
@@ -308,7 +310,7 @@ class PromtpStep:
                 self.header = {"Content-Type": "application/json", "anthropic-version": "2023-06-01", "x-api-key": f"{self.llm['API_KEY']}"}
                 self.data['system'] = self.system_value     # Anthropic wants system at data['system'] not in a msg
                 self.data['tools'] =  AnthropicToolsArray   # Tools Array has 'input_schema' instead of 'parameters'
-                self.data['max_tokens'] = int(int(self.model['context']) / 2)  # 1/2 of context size
+                self.data['max_tokens'] = int(int(self.llm['context']) / 2)  # 1/2 of context size
 
             case 'XAI':
                 self.header = {"Content-Type": "application/json", "Authorization": f"Bearer {self.llm['API_KEY']}"}
@@ -368,8 +370,12 @@ class PromtpStep:
 
                         self.print_with_wrap(is_responce=True, line=f"Call {function_name}:{function_id}:({function_args})")
                         ret = DefinedFunctions[function_name](**function_args)
-                        self.print_with_wrap(is_responce=False, line=f"Call returned: {ret}")
-                        return_msgs.append({"type": "tool_result", "tool_use_id": function_id, "content": ret})
+
+                        self.print_with_wrap(is_responce=False, line=f"Call returned: {ret} ")
+                        if function_name == 'readimage':
+                            return_msgs.append({"type": "tool_result", "tool_use_id": function_id, "content": ret})
+                        else:
+                            return_msgs.append({"type": "tool_result", "tool_use_id": function_id, "content": ret})
                 self.messages.append({"role":"user", "content":return_msgs})
 
 
@@ -720,6 +726,41 @@ class _Include(_PromptStatement):
         last_msg['content'] = new_text
 
 
+class _Image(_PromptStatement):
+    # Read an Image file and add its content to last_msg
+
+    def execute(self, step: PromtpStep) -> None:
+        step.print(self.console_str())
+        filename = self.value
+        """ Read a binary file from local disk and encode it as base64."""
+        try:
+            with open(filename, 'rb') as file:
+                file_contents = base64.b64encode(file.read()).decode()
+            media_type, _ = mimetypes.guess_type(filename)
+
+        except Exception as err:
+            console.print(f"Error accessing file: {str(err)}\n\n")
+            console.print_exception()
+            sys.exit(9)
+
+        sub_message = {
+            "type": "image",
+            "source":{
+                "type": "base64",
+                "media_type": media_type,
+                "data": f"{file_contents}"
+                }
+            }
+
+        if len(step.messages):
+            last_msg = step.messages[-1]
+            if last_msg['role'] == 'user':
+                last_msg['content'].append(sub_message)
+                return
+
+        step.messages.append({"role": "user", "content": [sub_message]})
+
+
 class _Llm(_PromptStatement):
 
     def execute(self, step: PromtpStep) -> None:
@@ -781,8 +822,10 @@ class _User(_PromptStatement):
     def execute(self, step: PromtpStep) -> None:
         step.print(self.console_str())
 
-        if len(step.messages) and step.messages[-1]['role'] == 'user':
-            step.messages[-1]['content'] += f"\n{self.value}"
+        if (len(step.messages)
+                and step.messages[-1]['role'] == 'user'
+                and type(step.messages[-1]['content']) == 'text'):
+                step.messages[-1]['content'] += f"\n{self.value}"
         else:
             step.messages.append({'role': 'user', 'content': self.value})
 
@@ -795,12 +838,14 @@ StatementTypes: dict[str, type(_PromptStatement)] = {
     '.cmd': _Cmd,
     '.debug': _Debug,
     '.exec': _Exec,
+    '.image': _Image,
     '.include': _Include,
     '.system': _System,
     '.user': _User,
     '.llm': _Llm,
 }
 
+keywords = StatementTypes.keys()
 
 def make_statement(step: PromtpStep, msg_no: int, keyword: str, value: str) -> _PromptStatement:
     my_class = StatementTypes[keyword]
