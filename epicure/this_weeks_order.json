@@ -1,0 +1,142 @@
+[
+  {"number": 1, "client": "TREJO", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 3, "unit": "kg", "item": "arugula"},
+    {"quantity": 2, "unit": "kg", "item": "albahaca"},
+    {"quantity": 200, "unit": "", "item": "Cebollín"},
+    {"quantity": 1, "unit": "domo", "item": "brote de betabel"},
+    {"quantity": 1, "unit": "domo", "item": "mastuerzo"},
+    {"quantity": 3, "unit": "domos", "item": "flores"}
+  ]
+},
+  {"number": 2, "client": "ONCE", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 3, "unit": "kg", "item": "arugula"},
+    {"quantity": 1, "unit": "", "item": "albahaca"},
+    {"quantity": 200, "unit": "", "item": "Cebollín"},
+    {"quantity": 1, "unit": "", "item": "brotes betabel"},
+    {"quantity": 2, "unit": "domos", "item": "flores"}
+  ]
+},
+  {"number": 3, "client": "MARÍA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 50, "unit": "", "item": "Col Morada"}
+  ]
+},
+  {"number": 4, "client": "APOALA", "comment": "", "mismo": true,
+  "items": []
+},
+  {"number": 5, "client": "Sta LUCIA", "comment": "", "mismo": true,
+  "items": []
+},
+  {"number": 6, "client": "VILLA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 20, "unit": "pzas de", "item": "flor de pensamiento"},
+    {"quantity": 20, "unit": "pzas de", "item": "crisantemos"},
+    {"quantity": 20, "unit": "pzas", "item": "clavelinas"}
+  ]
+},
+  {"number": 7, "client": "VALENTINO", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 1.5, "unit": "kg", "item": "arugula"},
+    {"quantity": 500, "unit": "g", "item": "albahaca"}
+  ]
+},
+  {"number": 8, "client": "ROMELIA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 3, "unit": "kg", "item": "Rocket"}
+  ]
+},
+  {"number": 9, "client": "ALTABRISA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 20, "unit": "pz", "item": "lechugas"},
+    {"quantity": 2, "unit": "kg", "item": "arugula baby"},
+    {"quantity": 2, "unit": "kg", "item": "espinaca baby"},
+    {"quantity": 10, "unit": "", "item": "pensamiento"},
+    {"quantity": 15, "unit": "", "item": "clavelinos"},
+    {"quantity": 500, "unit": "", "item": "albahaca normal"},
+    {"quantity": 100, "unit": "grs", "item": "brotes cilantro"}
+  ]
+},
+  {"number": 10, "client": "ROCA", "comment": "", "mismo": true,
+  "items": []
+},
+  {"number": 11, "client": "FLAN", "comment": "", "mismo": true,
+  "items": []
+},
+  {"number": 12, "client": "SICILIA", "comment": "", "mismo": true,
+  "items": []
+},
+  {"number": 13, "client": "ALTABRISA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 20, "unit": "pz", "item": "lechugas"},
+    {"quantity": 2, "unit": "kg", "item": "arugula baby"},
+    {"quantity": 2, "unit": "kg", "item": "espinaca baby"},
+    {"quantity": 10, "unit": "", "item": "pensamiento"},
+    {"quantity": 15, "unit": "", "item": "clavelinos"},
+    {"quantity": 0.5, "unit": "", "item": "albahaca normal"},
+    {"quantity": 100, "unit": "grs", "item": "brotes cilantro"}
+  ]
+},
+  {"number": 14, "client": "ARCANO", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 3, "unit": "KG", "item": "ARUGULA"},
+    {"quantity": 200, "unit": "GR", "item": "ENELDO"}
+  ]
+},
+  {"number": 15, "client": "THO BAR", "comment": "", "mismo": true,
+  "items": []
+},
+  {"number": 16, "client": "THO COCINA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 80, "unit": "gr", "item": "tréboles (2 domos)"},
+    {"quantity": 20, "unit": "pz", "item": "clavelinas"},
+    {"quantity": 8, "unit": "pz", "item": "caléndulas"},
+    {"quantity": 350, "unit": "gr", "item": "arugula Rocket"},
+    {"quantity": 10, "unit": "pz", "item": "cempasúchil"},
+    {"quantity": 4, "unit": "domito", "item": "de las hojitas lindas"}
+  ]
+},
+  {"number": 17, "client": "MEDICCI", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 4, "unit": "kilos", "item": "albahaca"},
+    {"quantity": 2.5, "unit": "kilos", "item": "arugula"}
+  ]
+},
+  {"number": 18, "client": "KUUK", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 70, "unit": "pza", "item": "Flor de borraja"},
+    {"quantity": 3, "unit": "DOMOS", "item": "Flor siempre viva"},
+    {"quantity": 50, "unit": "gr", "item": "Trébol morado"},
+    {"quantity": 40, "unit": "pza", "item": "Hoja se sorrel"},
+    {"quantity": 3, "unit": "domos", "item": "Domo de hojas"},
+    {"quantity": 10, "unit": "pza", "item": "Crisantemos"},
+    {"quantity": 10, "unit": "pza", "item": "Clave Lina"}
+  ]
+},
+  {"number": 19, "client": "PASTA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 5, "unit": "kg", "item": "arugula"},
+    {"quantity": 3.5, "unit": "", "item": "albahaca"},
+    {"quantity": 2, "unit": "charolas", "item": "flores"}
+  ]
+},
+  {"number": 20, "client": "GOAT NOR BAR", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 30, "unit": "PZ", "item": "violas"},
+    {"quantity": 30, "unit": "", "item": "de brote de rábano"}
+  ]
+},
+  {"number": 21, "client": "GOAT CENTRO BARRA", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 30, "unit": "gr", "item": "brotes de cilantro"}
+  ]
+},
+  {"number": 22, "client": "WAVE", "comment": "", "mismo": false,
+  "items": [
+    {"quantity": 300, "unit": "", "item": "Cebollin"},
+    {"quantity": 300, "unit": "", "item": "Thyme"},
+    {"quantity": 300, "unit": "", "item": "Romero"}
+  ]
+}
+]

@@ -84,7 +84,7 @@ class PromtpStep:
         self.messages: list[dict[str, str]] = []
         self.header: dict[str, any] = {}
         self.data: str = ''
-        self.console = Console()  # Console for terminal
+        self.console = Console(record=True)  # Console for terminal
         self.file_console = None  # Console for file, initialized in execute
         self.model: dict[str, any] = None
         self.model_name:str = None
@@ -275,7 +275,7 @@ class PromtpStep:
         base_name = os.path.splitext(os.path.basename(self.filename))[0]
         logfile_name = backup_file(f"logs/{base_name}.log", backup_dir='logs', extension='.log')
         with open(logfile_name, 'w') as file:
-            self.file_console = Console(file=file)  # Open file for writing
+            self.file_console = Console(file=file, record=True)  # Open file for writing
 
             self.print(
                 f"[bold white]{TOP_LEFT}{HORIZONTAL * 2}[/][bold white]{os.path.basename(self.filename):{HORIZONTAL}<{terminal_width - 4}}{TOP_RIGHT}[/]"
@@ -297,6 +297,10 @@ class PromtpStep:
             self.print(f"{BOTTOM_LEFT}{HORIZONTAL * (terminal_width - 2)}{BOTTOM_RIGHT}")
 
             self.file_console.file.close()  # Close file console at end
+            logfile_name_html = backup_file(f"logs/{base_name}.svg", backup_dir='logs', extension='.svg')
+            self.console.save_svg(logfile_name_html)
+            print(f"Wrote {logfile_name_html} to disk")
+
 
 
     def make_data(self) -> None:

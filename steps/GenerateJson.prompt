@@ -1,7 +1,6 @@
 .# Test generate Json
-.llm "model": "gpt-4o-mini"
+.llm "model": "grok-beta"
 .system
-We are updating json configuration files.
 
 .user
 
