@@ -12,6 +12,7 @@ from rich.table import Table
 
 from kestep.kestep import PromtpStep, print_step_code, models_config
 from kestep.kestep_api_config import api_config
+from kestep.kestep_functions import DefinedToolsArray
 
 console = Console()
 
@@ -25,6 +26,49 @@ logging.basicConfig(level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[Ric
 
 log = logging.getLogger(__file__)
 
+
+
+
+def print_functions():
+    table = Table(title="Available Functions")
+    table.add_column("Name", style="cyan", no_wrap=True)
+    table.add_column("Description/Parameters", style="green")
+    # table.add_column("Max Token", style="magenta", justify="right")
+    # table.add_column("$/mT In", style="green", justify="right")
+    # table.add_column("$/mT Out", style="green", justify="right")
+
+    # Sort by LLM name, then model.
+    sortable_keys = [f"{models_config[model]['company']}:{model}" for model in models_config.keys()]
+    sortable_keys.sort()
+
+    last_company = ''
+
+    for tool in DefinedToolsArray:
+        function = tool['function']
+        name = function['name']
+        description = function['description']
+
+        table.add_row(name, description,)
+        for k,v in function['parameters']['properties'].items():
+            table.add_row("", f"[bold blue]{k:10}[/]: {v['description']}")
+
+        table.add_row("","")
+    # for k in sortable_keys:
+    #     company, model_name = k.split(':', maxsplit=1)
+    #     model = models_config.get(model_name)
+    #     if company != last_company:
+    #         table.add_row(company,
+    #                       model_name,
+    #                       str(model['context']),
+    #                       f"{model['input']*1_000_000:06.4f}",
+    #                       f"{model['output']*1_000_000:06.4f}"
+    #                       )
+    #         last_company = company
+    #     else:
+    #         table.add_row("", model_name, str(model['context']), f"{model['input']*1_000_000:06.4f}",
+    #                   f"{model['output']*1_000_000:06.4f}")
+
+    console.print(table)
 
 
 
@@ -145,6 +189,7 @@ def get_cmd_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Kestep command line tool.")
     parser.add_argument('-v', '--version', action='store_true', help='Show version information and exit')
     parser.add_argument('-m', '--models', action='store_true', help='List company models information and exit')
+    parser.add_argument('-f', '--functions', action='store_true', help='List functions available to AI and exit')
     parser.add_argument('-s', '--steps', nargs='?', const='*', help='List Steps')
     parser.add_argument('-c', '--code', nargs='?', const='*', help='List code in Steps')
     parser.add_argument('-l', '--list', nargs='?', const='*', help='List Step file')
@@ -195,6 +240,11 @@ def main():
     if args.models:
         # Print the models table and exit
         print_models()
+        return
+
+    if args.functions:
+        # Print list of functions and exit
+        print_functions()
         return
 
     if args.key:
