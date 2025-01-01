@@ -5,7 +5,7 @@ import re
 import sys
 
 import keyring
-import toml
+import toml  # Ensure toml package is installed: `pip install toml`
 from rich.console import Console
 from rich.prompt import Prompt
 from rich.table import Table
@@ -161,6 +161,13 @@ def glob_step(step_name) -> list[str] :
 
 
 def main():
+    # Ensure 'steps' directory exists
+    if not os.path.exists('steps'):
+        os.makedirs('steps')
+
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+
     args = get_cmd_args()
     debug = args.debug
 
@@ -210,7 +217,8 @@ def main():
         if step_files:
             print_step_lines(step_files)
         else:
-            log.error(f"[bold red]No step files found ({args.step})[/bold red]", extra={"markup": True})
+            
+            log.error(f"[bold red]No step files found ({args.list})[/bold red]", extra={"markup": True})
         return
 
     if args.code:
