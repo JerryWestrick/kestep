@@ -44,13 +44,13 @@ api_config = {
         "url": "https://api.anthropic.com/v1/messages",
         "api_key": "ANTHROPIC_API_KEY",
         "response_text_is_json": True,
-        "finish_reason": ['stop_reason'],
-        "finish_reason_function_call": "tool_use",
-        "response_keys": ["content", 0, "text"],
+        # "finish_reason": ['stop_reason'],
+        # "finish_reason_function_call": "tool_use",
+        # "response_keys": ["content", 0, "text"],
         "usage_keys": ["input_tokens", "output_tokens"],
         "system_role": "system",
-        "messages_keys": ["content"],
-        "messages_multiple": True,
+        # "messages_keys": ["content"],
+        # "messages_multiple": True,
     }
 }
 

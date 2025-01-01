@@ -1,5 +1,5 @@
 .# Xai --> Test generate Json
-.llm "model": "grok-beta"
+.llm "model": "grok-2"
 .system
 We are updating json configuration files.
 Please gather as much information as possible in the first request.

@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import time
+from copy import deepcopy
 from time import sleep
 
 import keyring
@@ -113,7 +114,7 @@ class PromtpStep:
 
         # Basic info section
         table.add_column("Step Property", style="cyan", no_wrap=True)
-        table.add_column("Value", style="green")
+        table.add_column("Value", style="green", no_wrap=True)
 
         table.add_row("Filename", self.filename)
         table.add_row("Debug Mode", str(self.debug))
@@ -156,12 +157,16 @@ class PromtpStep:
             if self.messages:
                 table.add_row("Messages", f"Count: {len(self.messages)}")
                 for idx, msg in enumerate(self.messages):
-                    table.add_row(f"  Message {idx}", f"{msg['role']}: {msg['content']}")
+                    table.add_row(f"  Message {idx}", f"{msg['role']}:")
+                    for rno, content in enumerate(msg['content']):
+                        t = f"{rno}  : {content}"
+                        t = t.replace('\n', "<cr>")
+                        table.add_row(f"    ", t)
             else:
-                table.add_row("Statements", "Empty")
+                table.add_row("Messages", "Empty")
 
 
-        table.add_row("url", str(self.step.llm['url']))
+        table.add_row("url", str(self.llm['url']))
         table.add_row("header", str(self.header))
         table.add_row("data", str(self.data))
 
@@ -302,6 +307,26 @@ class PromtpStep:
             print(f"Wrote {logfile_name_html} to disk")
 
 
+    def correct_messages(self):
+        msgs = []
+
+        for msg in self.messages:
+            # convert all messages to objects with content arrays
+            if type(msg) == str:
+                msg = {"role": "user", "content": [{"type": "text", "text": msg}]}
+
+            # is there a previous message?
+            if msgs:
+                # Is last message same role as this one?
+                if msgs[-1]["role"] == msg["role"]:
+                    # copy contents to end of previous content array
+                    msgs[-1]["content"].extend(msg["content"])
+                    continue
+
+            msgs.append(msg)
+
+        self.messages = msgs
+
 
     def make_data(self) -> None:
         self.data = {
@@ -314,7 +339,7 @@ class PromtpStep:
                 self.header = {"Content-Type": "application/json", "anthropic-version": "2023-06-01", "x-api-key": f"{self.llm['API_KEY']}"}
                 self.data['system'] = self.system_value     # Anthropic wants system at data['system'] not in a msg
                 self.data['tools'] =  AnthropicToolsArray   # Tools Array has 'input_schema' instead of 'parameters'
-                self.data['max_tokens'] = int(int(self.llm['context']) / 2)  # 1/2 of context size
+                self.data['max_tokens'] = int(self.model['context'])  # output context size
 
             case 'XAI':
                 self.header = {"Content-Type": "application/json", "Authorization": f"Bearer {self.llm['API_KEY']}"}
@@ -380,7 +405,7 @@ class PromtpStep:
                             return_msgs.append({"type": "tool_result", "tool_use_id": function_id, "content": ret})
                         else:
                             return_msgs.append({"type": "tool_result", "tool_use_id": function_id, "content": ret})
-                self.messages.append({"role":"user", "content":return_msgs})
+                self.messages.append({"role":"user", "content": [{"type": "text", "text": return_msgs}]})
 
 
             case 'OpenAI' | 'XAI' | 'MistralAI':
@@ -483,7 +508,7 @@ class _Assistant(_PromptStatement):
             for vl in vls:
                 step.print(f"[bold white]{VERTICAL}[/]            [green]{vl}[/]")
         step.print(self.console_str())
-        step.messages.append({'role': 'assistant', 'content': self.value})
+        step.messages.append({'role': 'assistant', 'content': [{"type":"text", "text":self.value}]})
 
 
 class _Clear(_PromptStatement):
@@ -557,9 +582,7 @@ class _Cmd(_PromptStatement):
             raise err
 
         last_msg = step.messages[-1]
-        last_text = last_msg['content']
-        new_text = f"{last_text}\n```{self.value}\n{text}\n```"
-        last_msg['content'] = new_text
+        last_msg['content'].append({"type": "text", "text": text})
 
 
 class _Comment(_PromptStatement):
@@ -635,6 +658,7 @@ class _Exec(_PromptStatement):
         while continue_conversation:
             continue_conversation = False
             step.make_data()
+            step.correct_messages()
 
             if first_time:
                 first_time = False
@@ -667,7 +691,13 @@ class _Exec(_PromptStatement):
                     f"[bold red]Error calling {step.llm['company']}::{step.llm['model']} API: {response.status_code} {response.reason}[/bold red]")
                 step.print(f"url: {step.llm['url']}")
                 step.print("header: ", step.header)
-                step.print("data: ", step.data)
+                # step.print("data: ", step.data)
+                d = deepcopy(step.data)
+                for msg in d['messages']:
+                    for c in msg['content']:
+                        if c['type'] == 'image':
+                            c['source']['data'] = "..."
+                step.print("data: ", json.dumps(d, indent=4))
 
                 if step.llm['response_text_is_json']:
                     err = json.loads(response.text)
@@ -725,9 +755,9 @@ class _Include(_PromptStatement):
         step.print(self.console_str())
         lines = readfile(filename=self.value)
         last_msg = step.messages[-1]
+
         last_text = last_msg['content']
-        new_text = f"{last_text}\n{lines}\n"
-        last_msg['content'] = new_text
+        last_msg['content'].append({"type":"text","text": lines})
 
 
 class _Image(_PromptStatement):
@@ -747,20 +777,25 @@ class _Image(_PromptStatement):
             console.print_exception()
             sys.exit(9)
 
-        sub_message = {
-            "type": "image",
-            "source":{
-                "type": "base64",
-                "media_type": media_type,
-                "data": f"{file_contents}"
+
+        if self.step.company == 'Anthropic':
+            sub_message = {
+                "type": "image",
+                "source":{
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": f"{file_contents}"
+                    }
+                }
+        # elif self.step.company == 'XAI':
+        else:
+            sub_message = {
+                "type": "image_url",
+                "image_url": {
+                    "detail": "high",
+                    "url": f"data:image/{media_type};base64,{file_contents}"
                 }
             }
-
-        if len(step.messages):
-            last_msg = step.messages[-1]
-            if last_msg['role'] == 'user':
-                last_msg['content'].append(sub_message)
-                return
 
         step.messages.append({"role": "user", "content": [sub_message]})
 
@@ -818,7 +853,8 @@ class _System(_PromptStatement):
 
     def execute(self, step: PromtpStep) -> None:
         step.print(self.console_str())
-        step.messages.append({'role': 'system', 'content': self.value})
+        step.messages.append({'role': step.llm['system_role'], 'content': [{"type":"text", "text":self.value}]})
+        # step.messages.append({'role': 'system', 'content': self.value})
 
 
 class _User(_PromptStatement):
@@ -826,12 +862,10 @@ class _User(_PromptStatement):
     def execute(self, step: PromtpStep) -> None:
         step.print(self.console_str())
 
-        if (len(step.messages)
-                and step.messages[-1]['role'] == 'user'
-                and type(step.messages[-1]['content']) == 'text'):
-                step.messages[-1]['content'] += f"\n{self.value}"
+        if len(step.messages) and step.messages[-1]['role'] == 'user':
+            step.messages[-1]['content'].append({"type":"text", "text": self.value})
         else:
-            step.messages.append({'role': 'user', 'content': self.value})
+            step.messages.append({'role': 'user', 'content': [{"type":"text", "text": self.value}]})
 
 
 # Create a _PromptStatement subclass depending on keyword

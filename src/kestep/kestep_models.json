@@ -18,7 +18,7 @@
   "open-mistral-7b":            {"company": "MistralAI","model": "open-mistral-7b",           "input": 0.00000025,  "output": 0.00000025,  "context": 32000},
   "open-mixtral-8x7b":          {"company": "MistralAI","model": "open-mixtral-8x7b",         "input": 0.0000007,   "output": 0.0000007,   "context": 32000},
   "open-mixtral-8x22b":         {"company": "MistralAI","model": "open-mixtral-8x22b",        "input": 0.000002,    "output": 0.000006,    "context": 32000},
-  "claude-3-5-sonnet-20240620": {"company": "Anthropic","model": "claude-3-5-sonnet-20240620","input": 0.000003,    "output": 0.000015,    "context": 200000},
+  "claude-3-5-sonnet-20241022": {"company": "Anthropic","model": "claude-3-5-sonnet-20241022","input": 0.000003,    "output": 0.000015,    "context": 8192},
   "claude-3-5-haiku-20241022":  {"company": "Anthropic","model": "claude-3-5-haiku-20241022" ,"input": 0.00000015,  "output": 0.000004,    "context": 200000},
   "claude-3-opus-20240229":     {"company": "Anthropic","model": "claude-3-opus-20240229",    "input": 0.000015,    "output": 0.000075,    "context": 200000},
   "claude-3-sonnet-20240229":   {"company": "Anthropic","model": "claude-3-sonnet-20240229",  "input": 0.000003,    "output": 0.000015,    "context": 200000},
@@ -29,5 +29,8 @@
   "llama3":                     {"company": "Ollama",   "model": "llama3",                    "input": 0.0,         "output": 0.0,         "context": 4096},
   "phi3":                       {"company": "Ollama",   "model": "phi3",                      "input": 0.0,         "output": 0.0,         "context": 4096},
   "llama3-70b-8192":            {"company": "Groq",     "model": "llama3-70b-8192",           "input": 0.000002,    "output": 0.000004,    "context": 8192},
-  "grok-beta":                  {"company": "XAI",      "model": "grok-beta",                 "input": 0.000002,    "output": 0.000008,    "context": 8192}
+  "grok-beta":                  {"company": "XAI",      "model": "grok-beta",                 "input": 0.000005,    "output": 0.000015,    "context": 131072},
+  "grok-vision-beta":           {"company": "XAI",      "model": "grok-vision-beta",          "input": 0.000005,    "output": 0.000015,    "context": 8192},
+  "grok-2-1212":                {"company": "XAI",      "model": "grok-2-1212",               "input": 0.000002,    "output": 0.000010,    "context": 131072},
+  "grok-2-vision-1212":         {"company": "XAI",      "model": "grok-2-vision-1212",        "input": 0.000002,    "output": 0.000010,    "context": 8192}
 }
